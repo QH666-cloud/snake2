@@ -1,0 +1,16 @@
+{
+  "name": "Neon Snake AI",
+  "short_name": "SnakeAI",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/720/720932.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
