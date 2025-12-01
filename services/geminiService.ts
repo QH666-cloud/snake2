@@ -1,9 +1,11 @@
 import { GoogleGenAI } from "@google/genai";
 
 const getClient = () => {
-  const apiKey = process.env.API_KEY;
+  // Safety check for process.env in browser environments
+  const apiKey = (typeof process !== 'undefined' && process.env) ? process.env.API_KEY : undefined;
+  
   if (!apiKey) {
-    console.warn("API Key not found");
+    console.warn("API Key not found - AI features disabled");
     return null;
   }
   return new GoogleGenAI({ apiKey });

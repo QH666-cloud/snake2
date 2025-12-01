@@ -6,7 +6,7 @@ import { Point, Direction, GameStatus, ScoreEntry } from './types';
 import { GRID_SIZE, DIRECTIONS, INITIAL_SPEED, SPEED_INCREMENT, MIN_SPEED } from './constants';
 import { saveScore, getHistory } from './services/storageService';
 import { generateGameCommentary } from './services/geminiService';
-import { Bot, Gamepad2 } from 'lucide-react';
+import { Bot, Gamepad2, MonitorDown } from 'lucide-react';
 
 const INITIAL_SNAKE: Point[] = [
   { x: 10, y: 10 },
@@ -24,6 +24,7 @@ const App: React.FC = () => {
   const [speed, setSpeed] = useState(INITIAL_SPEED);
   const [history, setHistory] = useState<ScoreEntry[]>([]);
   const [aiLoading, setAiLoading] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
   // Use refs for values accessed inside interval to avoid stale closures without frequent re-renders
   const directionRef = useRef<Direction>(INITIAL_DIRECTION);
@@ -33,6 +34,15 @@ const App: React.FC = () => {
 
   useEffect(() => {
     setHistory(getHistory());
+
+    // PWA Install Prompt Listener
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
   // Update refs when state changes
@@ -61,7 +71,9 @@ const App: React.FC = () => {
     setAiLoading(true);
     let comment = "";
     
-    if (process.env.API_KEY) {
+    const hasApiKey = typeof process !== 'undefined' && process.env && process.env.API_KEY;
+
+    if (hasApiKey) {
         comment = await generateGameCommentary(score, reason);
     } else {
         comment = score > 10 ? "不错不错！" : "再接再厉！";
@@ -187,16 +199,37 @@ const App: React.FC = () => {
     }
   };
 
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col lg:flex-row items-center justify-center p-4 gap-8">
       
       {/* Game Area */}
       <div className="flex flex-col items-center w-full max-w-md">
-        <header className="mb-6 flex flex-col items-center">
+        <header className="mb-6 flex flex-col items-center relative w-full">
           <h1 className="font-pixel text-4xl text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 mb-2 tracking-tighter drop-shadow-lg flex items-center gap-3">
              <Gamepad2 size={32} className="text-emerald-400" />
              NEON SNAKE
           </h1>
+          
+          {deferredPrompt && (
+            <button 
+              onClick={handleInstallClick}
+              className="absolute right-0 top-2 lg:right-[-60px] p-2 bg-slate-800 hover:bg-emerald-600 text-slate-300 hover:text-white rounded-lg transition-colors flex items-center gap-2 text-xs font-bold border border-slate-700 shadow-lg"
+              title="Install App"
+            >
+              <MonitorDown size={16} />
+              <span className="hidden sm:inline">APP</span>
+            </button>
+          )}
+
           <div className="flex items-center gap-4 text-slate-400">
              <span className="font-mono bg-slate-800 px-3 py-1 rounded border border-slate-700">
                SCORE: <span className="text-white font-bold">{score}</span>
